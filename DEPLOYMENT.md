@@ -5,7 +5,7 @@ This repository is configured to deploy as one Render Blueprint containing:
 - one static Vite frontend;
 - one public API gateway;
 - four token-protected backend web services (auth, chat, agent, and billing);
-- one free Render Key Value instance for Redis-compatible sessions and rate limits.
+- one existing Render Key Value instance, supplied through `REDIS_URL`, for Redis-compatible sessions and rate limits.
 
 The blueprint is defined in `render.yaml`. Secret values are intentionally excluded from Git.
 
@@ -50,6 +50,7 @@ Use `deployment-secrets.local.env` as the private source for the prompted values
 | Render variable | Copy from local secret file |
 | --- | --- |
 | `MONGODB_URI` | `MONGODB_URI` (same value wherever prompted) |
+| `REDIS_URL` | `REDIS_URL` (same existing Render internal URL wherever prompted) |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | `FIREBASE_SERVICE_ACCOUNT_JSON` |
 | `GROQ_API_KEY` | `GROQ_API_KEY` |
 | `GOOGLE_API_KEY` | `GOOGLE_API_KEY` |
@@ -65,7 +66,7 @@ Use `deployment-secrets.local.env` as the private source for the prompted values
 | `VITE_RAZORPAY_KEY_ID` | `RAZORPAY_KEY_ID` |
 
 Do not enter or override `INTERNAL_SERVICE_TOKEN`. Render generates it on the gateway and shares it with the four internal services.
-Render also creates and wires `REDIS_URL` automatically, so the local private Redis URL is not entered during Blueprint creation.
+Enter the same existing `REDIS_URL` for the gateway, auth, and agent prompts. The Key Value instance must be in the same Render workspace and Singapore region as these services when using its internal URL.
 
 ## 3. Provider configuration after deployment
 

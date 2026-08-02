@@ -2,13 +2,6 @@ previews:
   generation: off
 
 services:
-  - type: keyvalue
-    name: modemesh-vedang-redis
-    plan: free
-    region: singapore
-    maxmemoryPolicy: allkeys-lru
-    ipAllowList: []
-
   - type: web
     name: modemesh-vedang-api
     runtime: node
@@ -37,10 +30,7 @@ services:
       - key: FRONTEND_URL
         value: https://modemesh-vedang.onrender.com
       - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: modemesh-vedang-redis
-          property: connectionString
+        sync: false
 
   - type: web
     name: modemesh-vedang-auth
@@ -65,10 +55,7 @@ services:
       - key: MONGODB_URI
         sync: false
       - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: modemesh-vedang-redis
-          property: connectionString
+        sync: false
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
         sync: false
 
@@ -118,10 +105,7 @@ services:
       - key: MONGODB_URI
         sync: false
       - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: modemesh-vedang-redis
-          property: connectionString
+        sync: false
       - key: GROQ_API_KEY
         sync: false
       - key: GOOGLE_API_KEY
