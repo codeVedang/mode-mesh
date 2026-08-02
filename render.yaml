@@ -1,0 +1,200 @@
+previews:
+  generation: off
+
+services:
+  - type: keyvalue
+    name: modemesh-vedang-redis
+    plan: free
+    region: singapore
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+  - type: web
+    name: modemesh-vedang-api
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: npm ci --omit=dev && npm ci --omit=dev --prefix gateway
+    startCommand: npm start --prefix gateway
+    healthCheckPath: /
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: INTERNAL_SERVICE_TOKEN
+        generateValue: true
+      - key: AUTH_SERVICE
+        value: https://modemesh-vedang-auth.onrender.com
+      - key: CHAT_SERVICE
+        value: https://modemesh-vedang-chat.onrender.com
+      - key: AGENT_SERVICE
+        value: https://modemesh-vedang-agent.onrender.com
+      - key: BILLING_SERVICE
+        value: https://modemesh-vedang-billing.onrender.com
+      - key: FRONTEND_URL
+        value: https://modemesh-vedang.onrender.com
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: modemesh-vedang-redis
+          property: connectionString
+
+  - type: web
+    name: modemesh-vedang-auth
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: npm ci --omit=dev && npm ci --omit=dev --prefix services/auth
+    startCommand: npm start --prefix services/auth
+    healthCheckPath: /
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: INTERNAL_SERVICE_TOKEN
+        fromService:
+          type: web
+          name: modemesh-vedang-api
+          envVarKey: INTERNAL_SERVICE_TOKEN
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: modemesh-vedang-redis
+          property: connectionString
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+
+  - type: web
+    name: modemesh-vedang-chat
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: npm ci --omit=dev && npm ci --omit=dev --prefix services/chat
+    startCommand: npm start --prefix services/chat
+    healthCheckPath: /
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: INTERNAL_SERVICE_TOKEN
+        fromService:
+          type: web
+          name: modemesh-vedang-api
+          envVarKey: INTERNAL_SERVICE_TOKEN
+      - key: MONGODB_URI
+        sync: false
+
+  - type: web
+    name: modemesh-vedang-agent
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: npm ci --omit=dev && npm ci --omit=dev --prefix services/agent
+    startCommand: npm start --prefix services/agent
+    healthCheckPath: /
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: INTERNAL_SERVICE_TOKEN
+        fromService:
+          type: web
+          name: modemesh-vedang-api
+          envVarKey: INTERNAL_SERVICE_TOKEN
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: modemesh-vedang-redis
+          property: connectionString
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: openrouter/free
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: AWS_REGION
+        value: eu-north-1
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_KEY
+        sync: false
+      - key: AWS_BUCKET_NAME
+        value: modemesh-vedang-files
+      - key: AUTH_SERVICE
+        value: https://modemesh-vedang-auth.onrender.com
+      - key: CHAT_SERVICE
+        value: https://modemesh-vedang-chat.onrender.com
+
+  - type: web
+    name: modemesh-vedang-billing
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: npm ci --omit=dev && npm ci --omit=dev --prefix services/billing
+    startCommand: npm start --prefix services/billing
+    healthCheckPath: /
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: INTERNAL_SERVICE_TOKEN
+        fromService:
+          type: web
+          name: modemesh-vedang-api
+          envVarKey: INTERNAL_SERVICE_TOKEN
+      - key: MONGODB_URI
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: AUTH_SERVICE
+        value: https://modemesh-vedang-auth.onrender.com
+
+  - type: web
+    name: modemesh-vedang
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: VITE_SERVER_URL
+        value: https://modemesh-vedang-api.onrender.com
+      - key: VITE_FIREBASE_API_KEY
+        sync: false
+      - key: VITE_RAZORPAY_KEY_ID
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
