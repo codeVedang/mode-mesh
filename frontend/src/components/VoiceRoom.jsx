@@ -230,7 +230,10 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
       ) || false
     } catch (submitError) {
       console.error(submitError)
-      const message = "I hit a connection problem. Please try that again."
+      const serviceIsStarting = submitError.response?.status === 503
+      const message = serviceIsStarting
+        ? "My AI services are taking longer than expected to wake up. Please try once more in a moment."
+        : "I hit a connection problem. Please try that again."
       setConversationError(message)
       responseScheduled = speakRef.current?.(message, { resumeListening: true }) || false
     } finally {

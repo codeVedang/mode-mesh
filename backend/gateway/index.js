@@ -5,7 +5,7 @@ import cors from "cors"
 import cookieParser from "cookie-parser"
 import { getCurrentUser } from "./controllers/user.controller.js"
 import protect from "./middleware/auth.middleware.js"
-import { proxyWithHeader } from "./utils/proxyWithHeader.js"
+import { proxyWithHeader, warmServices } from "./utils/proxyWithHeader.js"
 import morgan from "morgan"
 const port =process.env.PORT
 
@@ -27,4 +27,15 @@ app.get("/",(req,res)=>{
 
 app.listen(port,()=>{
     console.log(`gateway started at ${port}`)
+    void warmServices([
+        process.env.AUTH_SERVICE,
+        process.env.CHAT_SERVICE,
+        process.env.AGENT_SERVICE,
+        process.env.BILLING_SERVICE
+    ]).then((results) => {
+        const unavailableServices = results.filter((result) => result.status === "rejected").length
+        if (unavailableServices > 0) {
+            console.warn(`${unavailableServices} downstream service(s) are still starting`)
+        }
+    })
 })
