@@ -1621,6 +1621,21 @@ input:focus-visible {
   animation: voice-pulse 1.5s ease-in-out infinite;
 }
 
+.voice-stage.is-speaking .room-mic {
+  color: var(--ink);
+  background: var(--acid);
+  box-shadow: 0 0 0 16px rgba(216, 255, 74, 0.18);
+}
+
+.voice-stage.is-thinking .room-mic {
+  animation: voice-pulse 2s ease-in-out infinite;
+}
+
+.voice-stage.is-session-active .voice-status-dot {
+  background: var(--acid);
+  box-shadow: 0 0 0 4px rgba(216, 255, 74, 0.14);
+}
+
 .room-mic-status {
   display: flex;
   align-items: center;
@@ -1658,7 +1673,7 @@ input:focus-visible {
   width: min(310px, 100%);
   align-items: center;
   justify-content: space-between;
-  margin-top: 20px;
+  margin-top: 0;
   padding: 13px 0;
   cursor: pointer;
   color: white;
@@ -1671,6 +1686,33 @@ input:focus-visible {
 .send-voice-prompt:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.voice-session-actions {
+  display: flex;
+  width: min(620px, 100%);
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.end-voice-session {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 14px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.72);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-size: 11px;
+}
+
+.end-voice-session:hover {
+  color: white;
+  border-color: rgba(255, 255, 255, 0.72);
 }
 
 .voice-response {

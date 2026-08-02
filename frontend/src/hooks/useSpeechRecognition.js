@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
-export function useSpeechRecognition({ language = "en-US", onTranscript } = {}) {
+export function useSpeechRecognition({
+  language = "en-US",
+  onEnd,
+  onError,
+  onFinalTranscript,
+  onStart,
+  onTranscript,
+} = {}) {
   const recognitionRef = useRef(null)
+  const onEndRef = useRef(onEnd)
+  const onErrorRef = useRef(onError)
+  const onFinalTranscriptRef = useRef(onFinalTranscript)
+  const onStartRef = useRef(onStart)
   const onTranscriptRef = useRef(onTranscript)
   const [supported] = useState(
     () => Boolean(window.SpeechRecognition || window.webkitSpeechRecognition),
@@ -11,8 +22,12 @@ export function useSpeechRecognition({ language = "en-US", onTranscript } = {}) 
   const [error, setError] = useState("")
 
   useEffect(() => {
+    onEndRef.current = onEnd
+    onErrorRef.current = onError
+    onFinalTranscriptRef.current = onFinalTranscript
+    onStartRef.current = onStart
     onTranscriptRef.current = onTranscript
-  }, [onTranscript])
+  }, [onEnd, onError, onFinalTranscript, onStart, onTranscript])
 
   useEffect(() => {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition
@@ -27,18 +42,25 @@ export function useSpeechRecognition({ language = "en-US", onTranscript } = {}) 
     recognition.onstart = () => {
       setError("")
       setListening(true)
+      onStartRef.current?.()
     }
 
     recognition.onresult = (event) => {
       let nextTranscript = ""
+      let hasFinalResult = false
 
       for (let index = 0; index < event.results.length; index += 1) {
-        nextTranscript += event.results[index][0].transcript
+        nextTranscript += `${event.results[index][0].transcript} `
+        hasFinalResult ||= event.results[index].isFinal
       }
 
-      const normalizedTranscript = nextTranscript.trimStart()
+      const normalizedTranscript = nextTranscript.trim()
       setTranscript(normalizedTranscript)
       onTranscriptRef.current?.(normalizedTranscript)
+
+      if (hasFinalResult) {
+        onFinalTranscriptRef.current?.(normalizedTranscript)
+      }
     }
 
     recognition.onerror = (event) => {
@@ -48,10 +70,12 @@ export function useSpeechRecognition({ language = "en-US", onTranscript } = {}) 
           : "I could not hear that clearly. Try again.")
       }
       setListening(false)
+      onErrorRef.current?.(event.error)
     }
 
     recognition.onend = () => {
       setListening(false)
+      onEndRef.current?.()
     }
 
     recognitionRef.current = recognition
