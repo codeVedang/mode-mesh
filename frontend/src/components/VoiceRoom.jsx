@@ -4,6 +4,7 @@ import {
   TbArrowLeft,
   TbMicrophone,
   TbPlayerStopFilled,
+  TbPower,
   TbSend,
   TbSparkles,
   TbVolume,
@@ -13,10 +14,12 @@ import {
 import getMessages from "../features/getMessages"
 import { submitPrompt } from "../features/submitPrompt"
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition"
+import { setSelectedConversation } from "../redux/conversationSlice"
 import { setArtifacts, setMessages } from "../redux/messageSlice"
 
-const GREETING = "Hi, I'm ModeMesh. What would you like to know, create, or get done?"
-const SILENCE_BEFORE_SEND_MS = 1500
+const GREETING = "ModeMesh voice core online. I'm ready. What would you like me to handle?"
+const SILENCE_BEFORE_SEND_MS = 1200
+const WAKE_PHRASE = /^(?:hey\s+)?(?:mode\s*mesh|jarvis)[,\s:]*/i
 
 const toSpokenText = (value = "") => {
   const normalized = value
@@ -29,7 +32,7 @@ const toSpokenText = (value = "") => {
     .trim()
 
   if (normalized.length <= 1800) return normalized
-  return `${normalized.slice(0, 1800)}. The complete response is available on screen.`
+  return `${normalized.slice(0, 1800)}. The complete response is available in the transcript.`
 }
 
 const getPreferredVoice = () => {
@@ -44,8 +47,11 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
   const dispatch = useDispatch()
   const autoStartRef = useRef(false)
   const beginListeningRef = useRef(null)
+  const commandHandlerRef = useRef(null)
+  const endSessionRef = useRef(null)
   const handleSendRef = useRef(null)
   const isLoadingRef = useRef(false)
+  const lastSpokenTextRef = useRef(GREETING)
   const listenStartTimerRef = useRef(null)
   const resumeOnRecognitionEndRef = useRef(false)
   const sessionActiveRef = useRef(false)
@@ -56,6 +62,7 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
   const stopListeningRef = useRef(null)
   const submitInFlightRef = useRef(false)
   const transcriptRef = useRef("")
+  const transcriptStreamRef = useRef(null)
   const voiceReplyEnabledRef = useRef(true)
 
   const { selectedConversation } = useSelector((state) => state.conversation)
@@ -72,11 +79,14 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
 
   const handleRecognitionEnd = useCallback(() => {
     if (!resumeOnRecognitionEndRef.current || !sessionActiveRef.current) return
-    window.setTimeout(() => beginListeningRef.current?.(), 350)
+    window.setTimeout(() => beginListeningRef.current?.(), 300)
   }, [])
 
-  const handleRecognitionError = useCallback(() => {
-    resumeOnRecognitionEndRef.current = false
+  const handleRecognitionError = useCallback((errorCode) => {
+    resumeOnRecognitionEndRef.current = ![
+      "not-allowed",
+      "service-not-allowed",
+    ].includes(errorCode)
   }, [])
 
   const {
@@ -94,16 +104,14 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
 
   useEffect(() => {
     isLoadingRef.current = isLoading
+    lastSpokenTextRef.current = lastSpokenText
     sessionActiveRef.current = sessionActive
     speakingRef.current = speaking
     transcriptRef.current = transcript
     voiceReplyEnabledRef.current = voiceReplyEnabled
-  }, [isLoading, sessionActive, speaking, transcript, voiceReplyEnabled])
+  }, [isLoading, lastSpokenText, sessionActive, speaking, transcript, voiceReplyEnabled])
 
-  const latestAssistantMessage = useMemo(
-    () => [...messages].reverse().find((message) => message.role === "assistant"),
-    [messages],
-  )
+  const recentTranscript = useMemo(() => messages.slice(-16), [messages])
 
   const clearSilenceTimer = useCallback(() => {
     if (!silenceTimerRef.current) return
@@ -142,7 +150,7 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
       ) {
         start()
       }
-    }, 250)
+    }, 180)
   }, [clear, clearListenStartTimer, clearSilenceTimer, start, supported])
 
   const stopListening = useCallback((resumeAfterEnd = false) => {
@@ -178,8 +186,8 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
     const utterance = new SpeechSynthesisUtterance(spokenText)
     const preferredVoice = getPreferredVoice()
     if (preferredVoice) utterance.voice = preferredVoice
-    utterance.rate = 1.02
-    utterance.pitch = 1
+    utterance.rate = 1.04
+    utterance.pitch = 0.96
 
     const finishSpeaking = () => {
       if (speechGeneration !== speechGenerationRef.current) return
@@ -199,19 +207,29 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
     utterance.onend = finishSpeaking
     utterance.onerror = finishSpeaking
 
+    lastSpokenTextRef.current = text
     setLastSpokenText(text)
     window.speechSynthesis.speak(utterance)
     return true
   }, [])
 
   const handleSend = useCallback(async (overridePrompt) => {
-    const prompt = (overridePrompt ?? transcriptRef.current ?? typedFallback).trim()
-    if (!prompt || submitInFlightRef.current || isLoadingRef.current) return
+    const rawPrompt = (overridePrompt ?? transcriptRef.current ?? typedFallback).trim()
+    if (!rawPrompt || submitInFlightRef.current || isLoadingRef.current) return
+
+    if (commandHandlerRef.current?.(rawPrompt)) {
+      clear()
+      setTypedFallback("")
+      return
+    }
+
+    const promptWithoutWakePhrase = rawPrompt.replace(WAKE_PHRASE, "").trim()
+    const prompt = promptWithoutWakePhrase || rawPrompt
 
     submitInFlightRef.current = true
     stopListeningRef.current?.(false)
     setConversationError("")
-    setLastHeard(prompt)
+    setLastHeard(rawPrompt)
     clear()
     setTypedFallback("")
 
@@ -232,8 +250,8 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
       console.error(submitError)
       const serviceIsStarting = submitError.response?.status === 503
       const message = serviceIsStarting
-        ? "My AI services are taking longer than expected to wake up. Please try once more in a moment."
-        : "I hit a connection problem. Please try that again."
+        ? "My agent network is still coming online. Please try once more in a moment."
+        : "I couldn't complete that request. Please try again."
       setConversationError(message)
       responseScheduled = speakRef.current?.(message, { resumeListening: true }) || false
     } finally {
@@ -273,15 +291,60 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
     clear()
     setConversationError("")
     setLastHeard("")
-    setLastSpokenText("Voice session ended. Start again whenever you're ready.")
+    setLastSpokenText("Voice core offline. Start a new session whenever you're ready.")
   }, [clear, stopSpeaking])
+
+  const handleVoiceCommand = useCallback((rawPrompt) => {
+    const command = rawPrompt.replace(WAKE_PHRASE, "").trim().toLowerCase()
+
+    if (/^(repeat|repeat that|say that again)$/.test(command)) {
+      setLastHeard(rawPrompt)
+      speakRef.current?.(lastSpokenTextRef.current, { resumeListening: true })
+      return true
+    }
+
+    if (/^(new|start a new) (chat|conversation|session)$/.test(command)) {
+      dispatch(setSelectedConversation(null))
+      dispatch(setMessages([]))
+      dispatch(setArtifacts([]))
+      setLastHeard(rawPrompt)
+      speakRef.current?.("New conversation ready. What should we work on?", { resumeListening: true })
+      return true
+    }
+
+    if (/^(mute|mute voice|turn voice off)$/.test(command)) {
+      voiceReplyEnabledRef.current = false
+      setVoiceReplyEnabled(false)
+      setLastHeard(rawPrompt)
+      setLastSpokenText("Spoken replies are muted. I'm still listening.")
+      beginListeningRef.current?.()
+      return true
+    }
+
+    if (/^(unmute|unmute voice|turn voice on)$/.test(command)) {
+      voiceReplyEnabledRef.current = true
+      setVoiceReplyEnabled(true)
+      setLastHeard(rawPrompt)
+      speakRef.current?.("Spoken replies are back on.", { resumeListening: true })
+      return true
+    }
+
+    if (/^(stop|end|close) (voice|session|conversation)$/.test(command) || command === "goodbye") {
+      endSessionRef.current?.()
+      return true
+    }
+
+    return false
+  }, [dispatch])
 
   useEffect(() => {
     beginListeningRef.current = beginListening
+    commandHandlerRef.current = handleVoiceCommand
+    endSessionRef.current = endSession
     stopListeningRef.current = stopListening
     speakRef.current = speak
     handleSendRef.current = handleSend
-  }, [beginListening, handleSend, speak, stopListening])
+  }, [beginListening, endSession, handleSend, handleVoiceCommand, speak, stopListening])
 
   useEffect(() => {
     const loadMessages = async () => {
@@ -294,7 +357,7 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
       dispatch(setArtifacts(latestArtifactMessage?.artifacts || []))
     }
 
-    loadMessages()
+    void loadMessages()
   }, [dispatch, selectedConversationId, selectedConversationTitle])
 
   useEffect(() => {
@@ -325,10 +388,15 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
       if (autoStartRef.current) return
       autoStartRef.current = true
       startSession(initialPrompt)
-    }, 300)
+    }, 250)
 
     return () => window.clearTimeout(timeout)
   }, [initialPrompt, startSession])
+
+  useEffect(() => {
+    const stream = transcriptStreamRef.current
+    if (stream) stream.scrollTop = stream.scrollHeight
+  }, [isLoading, messages, speaking, transcript])
 
   useEffect(() => () => {
     sessionActiveRef.current = false
@@ -374,27 +442,27 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
           : "idle"
 
   const phaseHeading = {
-    idle: "Start a voice conversation.",
-    listening: "I'm listening.",
-    ready: "Your turn when you're ready.",
-    speaking: "Speaking now.",
-    thinking: "Thinking it through.",
+    idle: "Voice core offline",
+    listening: "Listening",
+    ready: "Standing by",
+    speaking: "Responding",
+    thinking: "Orchestrating agents",
   }[phase]
 
   const micStatus = conversationError
     || error
     || (listening
-      ? "Listening — I'll respond after a short pause"
+      ? "Speak naturally — I'll act after a short pause"
       : speaking
-        ? "Tap the microphone to interrupt"
+        ? "Tap the core to interrupt"
         : isLoading
-          ? "Routing your request to the right agent"
+          ? "Routing through the ModeMesh agent network"
           : sessionActive
-            ? "Conversation active"
-            : "Tap to begin")
+            ? "Hands-free session active"
+            : "Tap the core to reconnect")
 
   return (
-    <section className="voice-room">
+    <section className={`voice-room voice-phase-${phase}`}>
       <header className="voice-room-header">
         <button
           type="button"
@@ -407,39 +475,49 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
           <TbArrowLeft aria-hidden="true" />
           <span>Mode hub</span>
         </button>
+
         <div className="voice-room-title">
-          <TbWaveSine aria-hidden="true" />
-          <span>Conversational voice</span>
+          <span className="voice-core-status" />
+          <div>
+            <strong>ModeMesh Voice</strong>
+            <small>{sessionActive ? "Core online" : "Core offline"}</small>
+          </div>
         </div>
-        <button
-          type="button"
-          className="voice-output-toggle"
-          onClick={() => {
-            const nextEnabled = !voiceReplyEnabledRef.current
-            voiceReplyEnabledRef.current = nextEnabled
-            setVoiceReplyEnabled(nextEnabled)
-            if (!nextEnabled && speakingRef.current) stopSpeaking(true)
-          }}
-          aria-label={voiceReplyEnabled ? "Mute spoken replies" : "Enable spoken replies"}
-        >
-          {voiceReplyEnabled ? <TbVolume aria-hidden="true" /> : <TbVolumeOff aria-hidden="true" />}
-          <span>{voiceReplyEnabled ? "Voice reply on" : "Voice reply off"}</span>
-        </button>
+
+        <div className="voice-header-actions">
+          <button
+            type="button"
+            className="voice-output-toggle"
+            onClick={() => {
+              const nextEnabled = !voiceReplyEnabledRef.current
+              voiceReplyEnabledRef.current = nextEnabled
+              setVoiceReplyEnabled(nextEnabled)
+              if (!nextEnabled && speakingRef.current) stopSpeaking(true)
+            }}
+            aria-label={voiceReplyEnabled ? "Mute spoken replies" : "Enable spoken replies"}
+          >
+            {voiceReplyEnabled ? <TbVolume aria-hidden="true" /> : <TbVolumeOff aria-hidden="true" />}
+            <span>{voiceReplyEnabled ? "Audio on" : "Audio off"}</span>
+          </button>
+          {sessionActive && (
+            <button type="button" className="voice-end-control" onClick={endSession}>
+              <TbPower aria-hidden="true" />
+              <span>End</span>
+            </button>
+          )}
+        </div>
       </header>
 
-      <div className="voice-room-layout">
-        <div className={`voice-stage is-${phase} ${sessionActive ? "is-session-active" : ""}`}>
-          <div className="voice-stage-label">VOICE / AUTO AGENT</div>
-          <h1>{phaseHeading}</h1>
-          <p className="voice-stage-copy">
-            {supported
-              ? "Speak naturally. ModeMesh will listen, respond aloud, and keep the conversation going hands-free."
-              : "Speech recognition is not available in this browser. Use the fallback field below."}
-          </p>
+      <main className="voice-console">
+        <section className="voice-core-panel" aria-label="Voice assistant controls">
+          <div className="voice-core-kicker">
+            <TbSparkles aria-hidden="true" />
+            AUTONOMOUS AGENT INTERFACE
+          </div>
 
           <button
             type="button"
-            className="room-mic"
+            className="voice-core-button"
             onClick={handlePrimaryAction}
             disabled={!supported || isLoading}
             aria-label={speaking
@@ -448,80 +526,108 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
                 ? "Finish speaking now"
                 : sessionActive
                   ? "Start listening"
-                  : "Start voice conversation"}
+                  : "Start voice session"}
           >
-            {listening ? <TbPlayerStopFilled aria-hidden="true" /> : <TbMicrophone aria-hidden="true" />}
+            <span className="voice-core-ring voice-core-ring-one" />
+            <span className="voice-core-ring voice-core-ring-two" />
+            <span className="voice-core-center">
+              {listening ? <TbPlayerStopFilled aria-hidden="true" /> : <TbMicrophone aria-hidden="true" />}
+            </span>
           </button>
 
-          <div className="room-mic-status" aria-live="polite">
-            <span className="voice-status-dot" />
-            {micStatus}
+          <div className="voice-waveform" aria-hidden="true">
+            {Array.from({ length: 13 }, (_, index) => <span key={index} />)}
           </div>
 
-          <div className="live-transcript" aria-live="polite">
-            <span>{listening ? "LIVE TRANSCRIPT" : lastHeard ? "LAST HEARD" : "CONVERSATION"}</span>
-            <p>{transcript || lastHeard || "ModeMesh will greet you, then listen for your first request."}</p>
+          <h1>{phaseHeading}</h1>
+          <p className="voice-core-copy" aria-live="polite">{micStatus}</p>
+
+          <div className="voice-capabilities" aria-label="Voice capabilities">
+            <span>Auto routing</span>
+            <span>Continuous listening</span>
+            <span>Voice commands</span>
           </div>
+        </section>
 
-          <div className="voice-session-actions">
-            <button
-              type="button"
-              className="send-voice-prompt"
-              onClick={() => handleSend()}
-              disabled={!transcript.trim() || isLoading}
-            >
-              <span>{isLoading ? "ModeMesh is thinking" : "Send now"}</span>
-              <TbSend aria-hidden="true" />
-            </button>
+        <section className="voice-transcript-console" aria-label="Conversation transcript">
+          <header>
+            <div>
+              <TbWaveSine aria-hidden="true" />
+              <span>LIVE TRANSCRIPT</span>
+            </div>
+            <small>{selectedConversationTitle && selectedConversationTitle !== "New Chat"
+              ? selectedConversationTitle
+              : "Auto agent session"}</small>
+          </header>
 
-            {sessionActive && (
-              <button type="button" className="end-voice-session" onClick={endSession}>
-                <TbPlayerStopFilled aria-hidden="true" />
-                End session
-              </button>
+          <div className="voice-transcript-stream" ref={transcriptStreamRef} aria-live="polite">
+            {recentTranscript.length === 0 && !lastHeard && (
+              <article className="voice-turn assistant">
+                <span>MODEMESH</span>
+                <p>{lastSpokenText}</p>
+              </article>
+            )}
+
+            {recentTranscript.map((message, index) => (
+              <article
+                className={`voice-turn ${message.role === "user" ? "user" : "assistant"}`}
+                key={message._id || `${message.role}-${index}-${message.content?.slice(0, 16)}`}
+              >
+                <span>{message.role === "user" ? "YOU" : "MODEMESH"}</span>
+                <p>{message.role === "assistant" ? toSpokenText(message.content) : message.content}</p>
+              </article>
+            ))}
+
+            {listening && transcript && (
+              <article className="voice-turn user live">
+                <span>YOU · LIVE</span>
+                <p>{transcript}</p>
+              </article>
+            )}
+
+            {isLoading && (
+              <article className="voice-turn assistant processing">
+                <span>MODEMESH</span>
+                <p>Coordinating the best agent for your request<span className="voice-thinking-dots">...</span></p>
+              </article>
+            )}
+
+            {conversationError && (
+              <article className="voice-turn system-error">
+                <span>SYSTEM</span>
+                <p>{conversationError}</p>
+              </article>
             )}
           </div>
-        </div>
-
-        <aside className="voice-response">
-          <div className="response-kicker">
-            <TbSparkles aria-hidden="true" />
-            MODEMESH RESPONSE
-          </div>
-          <h2>{speaking
-            ? "Speaking now"
-            : latestAssistantMessage
-              ? "Here's what I found"
-              : sessionActive
-                ? "Conversation started"
-                : "Ready when you are"}</h2>
-          <div className="response-copy">
-            {latestAssistantMessage?.content || lastSpokenText}
-          </div>
-
-          {speaking && (
-            <button type="button" className="stop-response" onClick={() => stopSpeaking(true)}>
-              <TbMicrophone aria-hidden="true" />
-              Interrupt and speak
-            </button>
-          )}
 
           {!supported && (
-            <div className="voice-fallback">
-              <label htmlFor="voice-fallback-input">Type instead</label>
-              <textarea
-                id="voice-fallback-input"
-                value={typedFallback}
-                onChange={(event) => setTypedFallback(event.target.value)}
-                placeholder="Describe what you need"
-              />
-              <button type="button" onClick={() => handleSend(typedFallback)} disabled={!typedFallback.trim()}>
-                Send
-              </button>
-            </div>
+            <form
+              className="voice-fallback"
+              onSubmit={(event) => {
+                event.preventDefault()
+                handleSend(typedFallback)
+              }}
+            >
+              <label htmlFor="voice-fallback-input">Voice unavailable — type a command</label>
+              <div>
+                <input
+                  id="voice-fallback-input"
+                  value={typedFallback}
+                  onChange={(event) => setTypedFallback(event.target.value)}
+                  placeholder="What should ModeMesh do?"
+                />
+                <button type="submit" disabled={!typedFallback.trim()} aria-label="Send command">
+                  <TbSend aria-hidden="true" />
+                </button>
+              </div>
+            </form>
           )}
-        </aside>
-      </div>
+
+          <footer className="voice-command-hints">
+            Try “Hey ModeMesh, research today's AI news”, “repeat that”, or “start a new conversation”.
+          </footer>
+        </section>
+      </main>
     </section>
   )
 }

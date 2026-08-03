@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
+const recognitionErrors = {
+  "audio-capture": "No microphone was detected. Check your audio input and try again.",
+  network: "The browser voice service lost its connection. Reconnecting…",
+  "no-speech": "I didn't hear anything. Listening again…",
+  "not-allowed": "Microphone access was not allowed.",
+  "service-not-allowed": "Voice recognition is blocked by this browser or device.",
+}
+
 export function useSpeechRecognition({
   language = "en-US",
   onEnd,
@@ -65,9 +73,8 @@ export function useSpeechRecognition({
 
     recognition.onerror = (event) => {
       if (event.error !== "aborted") {
-        setError(event.error === "not-allowed"
-          ? "Microphone access was not allowed."
-          : "I could not hear that clearly. Try again.")
+        setError(recognitionErrors[event.error]
+          || "I could not hear that clearly. Listening again…")
       }
       setListening(false)
       onErrorRef.current?.(event.error)

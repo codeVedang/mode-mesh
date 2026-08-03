@@ -1,4 +1,4 @@
-import { addConversation, setConvTitle, setSelectedConversation } from "../redux/conversationSlice"
+import { addConversation, setConvTitle, setSelectedConversation, touchConversation } from "../redux/conversationSlice"
 import { addMessage, setArtifacts, setIsLoading, setMessages } from "../redux/messageSlice"
 import { createConversation } from "./createConversation"
 import sendMessage from "./sendMessage"
@@ -52,6 +52,10 @@ export async function submitPrompt({
     }
 
     dispatch(addMessage({ role: "user", content: displayPrompt }))
+    dispatch(touchConversation({
+      conversationId: activeConversation?._id,
+      updatedAt: new Date().toISOString(),
+    }))
 
     const data = await sendMessage(formData)
 

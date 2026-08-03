@@ -1,18 +1,21 @@
 import { signInWithPopup } from "firebase/auth"
-import { useEffect, useState } from "react"
+import { lazy, Suspense, useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { FcGoogle } from "react-icons/fc"
 import { TbLayersIntersect, TbWaveSine } from "react-icons/tb"
 import { auth, googleProvider } from "../../utils/firebase"
 import api from "../../utils/axios"
 import { warmAllServices } from "../../utils/serviceWarmup"
-import Artifact from "../components/Artifact"
 import BillingDrawer from "../components/BillingDrawer"
-import ChatArea from "../components/ChatArea"
 import ModeGateway from "../components/ModeGateway"
-import SideBar from "../components/SideBar"
-import VoiceRoom from "../components/VoiceRoom"
+import { getConversations } from "../features/getConversations"
+import { setConversations, setSelectedConversation } from "../redux/conversationSlice"
 import { setUserdata } from "../redux/userSlice"
+
+const Artifact = lazy(() => import("../components/Artifact"))
+const ChatArea = lazy(() => import("../components/ChatArea"))
+const SideBar = lazy(() => import("../components/SideBar"))
+const VoiceRoom = lazy(() => import("../components/VoiceRoom"))
 
 function Home({ designPreview = false }) {
   const dispatch = useDispatch()
@@ -26,6 +29,31 @@ function Home({ designPreview = false }) {
   useEffect(() => {
     void warmAllServices()
   }, [])
+
+  useEffect(() => {
+    if (!userData?._id) {
+      dispatch(setConversations([]))
+      dispatch(setSelectedConversation(null))
+      return undefined
+    }
+
+    let cancelled = false
+
+    const loadConversations = async () => {
+      try {
+        const conversations = await getConversations()
+        if (!cancelled) dispatch(setConversations(conversations || []))
+      } catch (error) {
+        console.error("Unable to load recent conversations", error)
+      }
+    }
+
+    void loadConversations()
+
+    return () => {
+      cancelled = true
+    }
+  }, [dispatch, userData?._id])
 
   const handleLogin = async (token) => {
     const { data } = await api.post("/api/auth/login", { token })
@@ -108,29 +136,36 @@ function Home({ designPreview = false }) {
   }
 
   return (
-    <div className={`workspace-shell workspace-${workspaceMode}`}>
-      <SideBar
-        mode={workspaceMode}
-        onModeChange={(nextMode) => {
-          setEntryPayload({})
-          setWorkspaceMode(nextMode)
-        }}
-        onModeHub={returnToGateway}
-      />
-
-      {workspaceMode === "voice" ? (
-        <VoiceRoom initialPrompt={entryPayload.prompt} onBack={returnToGateway} />
-      ) : (
-        <ChatArea
-          initialAgent={entryPayload.agent}
-          initialFile={entryPayload.file}
-          initialPrompt={entryPayload.prompt}
-          onBack={returnToGateway}
-        />
-      )}
-
-      <Artifact />
-    </div>
+    <Suspense fallback={(
+      <main className="workspace-loading">
+        <TbWaveSine aria-hidden="true" />
+        <span>Loading ModeMesh workspace</span>
+      </main>
+    )}>
+      <div className={`workspace-shell workspace-${workspaceMode}`}>
+        {workspaceMode === "voice" ? (
+          <VoiceRoom initialPrompt={entryPayload.prompt} onBack={returnToGateway} />
+        ) : (
+          <>
+            <SideBar
+              mode={workspaceMode}
+              onModeChange={(nextMode) => {
+                setEntryPayload({})
+                setWorkspaceMode(nextMode)
+              }}
+              onModeHub={returnToGateway}
+            />
+            <ChatArea
+              initialAgent={entryPayload.agent}
+              initialFile={entryPayload.file}
+              initialPrompt={entryPayload.prompt}
+              onBack={returnToGateway}
+            />
+            <Artifact />
+          </>
+        )}
+      </div>
+    </Suspense>
   )
 }
 

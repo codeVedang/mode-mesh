@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import {
   TbArrowBackUp,
@@ -14,9 +14,8 @@ import {
   TbWriting,
   TbX,
 } from "react-icons/tb"
-import { getConversations } from "../features/getConversations"
 import logOut from "../features/logOut"
-import { setConversations, setSelectedConversation } from "../redux/conversationSlice"
+import { setSelectedConversation } from "../redux/conversationSlice"
 import { setMessages } from "../redux/messageSlice"
 import { setUserdata } from "../redux/userSlice"
 import BillingDrawer from "./BillingDrawer"
@@ -28,17 +27,6 @@ function SideBar({ mode, onModeChange, onModeHub }) {
   const [imageError, setImageError] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showBilling, setShowBilling] = useState(false)
-
-  useEffect(() => {
-    const loadConversations = async () => {
-      const data = await getConversations()
-      dispatch(setConversations(data || []))
-    }
-
-    if (userData?._id) {
-      loadConversations()
-    }
-  }, [dispatch, userData?._id])
 
   const newSession = () => {
     dispatch(setSelectedConversation(null))

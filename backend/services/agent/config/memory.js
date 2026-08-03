@@ -13,18 +13,19 @@ export const getMemory=async (conversationId)=>{
     return messages
 }
 
-export const addMessage=async (conversationId,role,content)=>{
+export const addMessages=async (conversationId,newMessages)=>{
      const key=`messages-${conversationId}`
      const rawMessages=await redis.get(key)
      const messages=rawMessages?JSON.parse(rawMessages):[]
-     messages.push({
-        role,content
-     })
+     messages.push(...newMessages)
 
-     if(messages.length>20){
-        messages.shift()
-     }
+     const recentMessages=messages.slice(-20)
 
-     await redis.set(key,JSON.stringify(messages))
+     await redis.set(key,JSON.stringify(recentMessages),"EX",24*60*60)
 }
+
+export const addMessage=async (conversationId,role,content)=>addMessages(
+    conversationId,
+    [{role,content}]
+)
 

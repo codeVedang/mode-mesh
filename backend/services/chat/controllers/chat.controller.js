@@ -45,13 +45,18 @@ export const updateConversation=async (req,res) => {
 export const saveMessage=async (req,res) => {
     try {
         const {conversationId,role,content,images,artifacts}=req.body
-        const message=await Message.create({
-            conversationId,
-            content,
-            role,
-            images,
-            artifacts
-        })
+        const [message]=await Promise.all([
+            Message.create({
+                conversationId,
+                content,
+                role,
+                images,
+                artifacts
+            }),
+            Conversation.findByIdAndUpdate(conversationId,{
+                updatedAt:new Date()
+            })
+        ])
         return res.status(200).json(message)
     } catch (error) {
         return res.status(500).json({message:`save message error ${error}`})

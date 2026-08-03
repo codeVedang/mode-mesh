@@ -41,18 +41,20 @@ Sign in with Google and choose one of two purpose-built experiences:
 
 - **Real multi-agent orchestration:** LangGraph classifies each request and routes it through a stateful graph of specialized agents.
 - **Multimodal interaction:** hands-free voice, text chat, PDF upload, image analysis, image generation, and downloadable artifacts share one workspace.
+- **Jarvis-style voice console:** a single-screen live transcript runs a continuous listen → route → answer → speak loop, supports interruption, and recognizes commands for repeat, mute, new conversation, and ending a session.
 - **Production-oriented architecture:** an API gateway fronts four independently deployable services with internal service authentication.
 - **End-to-end RAG:** uploaded PDFs are parsed, chunked, embedded, stored in Qdrant, retrieved by similarity, and answered with grounded context.
 - **Multiple model providers:** Groq, Google Gemini, and OpenRouter are selected by workload instead of coupling the platform to one model.
 - **Cloud-native delivery:** Docker images, Render Blueprint deployment, GitHub Actions, AWS ECR/ECS, S3, and CloudFront are represented in repository-managed deployment code.
 - **Resilient free-tier deployment:** shared readiness checks, concurrent warming, scoped `503` retries, and user-friendly recovery reduce microservice cold-start failures.
+- **Performance-focused delivery:** route-level workspace splitting keeps Monaco and chat tooling out of the initial login bundle, while agent persistence and Redis memory writes run concurrently.
 - **Security-aware boundaries:** Firebase token verification, HTTP-only session cookies, Redis-backed sessions, CORS, private service tokens, environment-managed secrets, and signed S3 URLs.
 
 ## Product capabilities
 
 | Area | Capability |
 | --- | --- |
-| Conversational voice | Browser speech recognition and synthesis, live transcript, silence-based auto-send, spoken replies, mute, interruption, and session controls |
+| Conversational voice | Jarvis-style single-screen transcript, wake phrases, continuous listening, silence-based auto-send, spoken replies, mute, repeat, new-session commands, and interruption |
 | Intelligent routing | `Auto` mode uses an LLM router and LangGraph conditional edges to select the appropriate specialist |
 | General assistant | Context-aware chat with Redis-backed short-term memory and persistent MongoDB conversation history |
 | Live research | Tavily web search feeds current results into the answer-generation agent |
@@ -63,7 +65,7 @@ Sign in with Google and choose one of two purpose-built experiences:
 | Image generation | Prompt enhancement, Pollinations image generation, S3 storage, and signed downloads |
 | Authentication | Firebase Google OAuth on the client and Firebase Admin token verification in the auth service |
 | Monetization | Razorpay order verification, subscription plans, credits, and per-agent usage costs |
-| Conversation UX | Saved conversations, Markdown/GFM rendering, syntax highlighting, copy actions, loading states, and responsive UI |
+| Conversation UX | Globally loaded and recency-sorted conversation history, Markdown/GFM rendering, syntax highlighting, copy actions, loading states, and responsive UI |
 
 ## Multi-agent graph
 

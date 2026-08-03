@@ -28,12 +28,22 @@ const conversationSlice=createSlice({
            if(state.selectedConversation?._id==conversationId){
                state.selectedConversation={...state.selectedConversation,title}
            }
+      },
+
+      touchConversation:(state,action)=>{
+           const {conversationId,updatedAt}=action.payload
+           const conversationIndex=state.conversations.findIndex((conv)=>conv._id==conversationId)
+
+           if(conversationIndex>=0){
+             const [conversation]=state.conversations.splice(conversationIndex,1)
+             state.conversations.unshift({...conversation,updatedAt})
+           }
       }
 
     }
    
 })
 
-export const {setConversations,addConversation,setSelectedConversation,setConvTitle}=conversationSlice.actions 
+export const {setConversations,addConversation,setSelectedConversation,setConvTitle,touchConversation}=conversationSlice.actions
 export default conversationSlice.reducer
 
