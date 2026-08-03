@@ -190,6 +190,14 @@ services:
         value: "22"
       - key: VITE_SERVER_URL
         value: https://modemesh-vedang-api.onrender.com
+      - key: VITE_AUTH_SERVICE_URL
+        value: https://modemesh-vedang-auth.onrender.com
+      - key: VITE_CHAT_SERVICE_URL
+        value: https://modemesh-vedang-chat.onrender.com
+      - key: VITE_AGENT_SERVICE_URL
+        value: https://modemesh-vedang-agent.onrender.com
+      - key: VITE_BILLING_SERVICE_URL
+        value: https://modemesh-vedang-billing.onrender.com
       - key: VITE_FIREBASE_API_KEY
         sync: false
       - key: VITE_RAZORPAY_KEY_ID

@@ -1,10 +1,11 @@
 import { signInWithPopup } from "firebase/auth"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { FcGoogle } from "react-icons/fc"
 import { TbLayersIntersect, TbWaveSine } from "react-icons/tb"
 import { auth, googleProvider } from "../../utils/firebase"
 import api from "../../utils/axios"
+import { warmAllServices } from "../../utils/serviceWarmup"
 import Artifact from "../components/Artifact"
 import BillingDrawer from "../components/BillingDrawer"
 import ChatArea from "../components/ChatArea"
@@ -18,7 +19,12 @@ function Home({ designPreview = false }) {
   const { userData } = useSelector((state) => state.user)
   const [workspaceMode, setWorkspaceMode] = useState(null)
   const [entryPayload, setEntryPayload] = useState({})
+  const [isSigningIn, setIsSigningIn] = useState(false)
   const [showBilling, setShowBilling] = useState(false)
+
+  useEffect(() => {
+    void warmAllServices()
+  }, [])
 
   const handleLogin = async (token) => {
     try {
@@ -30,12 +36,15 @@ function Home({ designPreview = false }) {
   }
 
   const googleLogin = async () => {
+    setIsSigningIn(true)
     try {
       const data = await signInWithPopup(auth, googleProvider)
       const token = await data.user.getIdToken()
       await handleLogin(token)
     } catch (error) {
       console.error(error)
+    } finally {
+      setIsSigningIn(false)
     }
   }
 
@@ -72,9 +81,9 @@ function Home({ designPreview = false }) {
             <div className="login-card-number">01 / ENTER</div>
             <h2>Your workspace is ready.</h2>
             <p>Sign in once, then choose whether you want to think out loud or work in text.</p>
-            <button type="button" onClick={googleLogin}>
+            <button type="button" onClick={googleLogin} disabled={isSigningIn}>
               <FcGoogle aria-hidden="true" />
-              Continue with Google
+              {isSigningIn ? "Starting secure workspace..." : "Continue with Google"}
             </button>
             {designPreview && <small>Design preview mode</small>}
           </div>

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { warmServiceForRequest } from "./serviceWarmup"
 
 const SERVICE_RETRY_DELAYS_MS = [1500, 3500, 7000]
 
@@ -9,6 +10,15 @@ const api=axios.create({
 
 const delay = (milliseconds) => new Promise((resolve) => {
     window.setTimeout(resolve, milliseconds)
+})
+
+api.interceptors.request.use(async (config) => {
+    try {
+        await warmServiceForRequest(config.url)
+    } catch (error) {
+        console.warn("Direct service warm-up did not complete; using gateway fallback", error)
+    }
+    return config
 })
 
 api.interceptors.response.use(

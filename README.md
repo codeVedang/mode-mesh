@@ -35,7 +35,7 @@ Sign in with Google and choose one of two purpose-built experiences:
 - **Voice Mode** — an Alexa/Siri-style conversational loop that greets the user, listens, detects silence, submits automatically, speaks the answer, resumes listening, and supports interruption.
 - **Text Mode** — a full AI workspace with agent selection, persistent conversations, Markdown answers, code highlighting, file upload, generated artifacts, and billing controls.
 
-> Render free services can sleep after inactivity. ModeMesh starts its downstream services concurrently and retries explicit cold-start responses, but the first request can still take longer than usual.
+> Render free services can sleep after inactivity. The browser prewarms all downstream services in parallel, API calls wait for the service they need, and the gateway retains scoped cold-start retries. The first request can still take longer than usual while free instances start.
 
 ## Why this project stands out
 
@@ -284,7 +284,7 @@ Never commit secrets. `.env*`, Firebase Admin JSON files, PEM files, and `deploy
 
 | Scope | Variables |
 | --- | --- |
-| Frontend | `VITE_SERVER_URL`, `VITE_FIREBASE_API_KEY`, `VITE_RAZORPAY_KEY_ID` |
+| Frontend | `VITE_SERVER_URL`, `VITE_AUTH_SERVICE_URL`, `VITE_CHAT_SERVICE_URL`, `VITE_AGENT_SERVICE_URL`, `VITE_BILLING_SERVICE_URL`, `VITE_FIREBASE_API_KEY`, `VITE_RAZORPAY_KEY_ID` |
 | Gateway | `PORT`, `FRONTEND_URL`, `AUTH_SERVICE`, `CHAT_SERVICE`, `AGENT_SERVICE`, `BILLING_SERVICE`, `REDIS_URL`, `INTERNAL_SERVICE_TOKEN` |
 | Auth | `PORT`, `NODE_ENV`, `MONGODB_URI`, `REDIS_URL`, `FIREBASE_SERVICE_ACCOUNT_JSON`, `INTERNAL_SERVICE_TOKEN` |
 | Chat | `PORT`, `NODE_ENV`, `MONGODB_URI`, `INTERNAL_SERVICE_TOKEN` |
