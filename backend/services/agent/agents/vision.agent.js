@@ -45,16 +45,22 @@ const buffer=Buffer.from(imageRes.data)
 const filename=`image-${Date.now()}.png`
 
 await uploadToS3(filename,buffer,"image/png")
-const downloadUrl=await getFromS3(filename,24*60)
+const expiresIn=60*60
+const previewUrl=await getFromS3(filename,expiresIn)
+const downloadUrl=await getFromS3(filename,expiresIn,filename)
 
 return {
     ...state,
-    aiResponse:`
-![Generated Image](${downloadUrl})
-
-📥 [Download Image](${downloadUrl})
-
-⏳ Link expires in 10 minutes.`
+    aiResponse:"Your generated image is ready.",
+    images:[previewUrl],
+    deliverables:[{
+        type:"image",
+        name:filename,
+        label:"Generated image",
+        url:downloadUrl,
+        mimeType:"image/png",
+        expiresAt:new Date(Date.now()+expiresIn*1000).toISOString()
+    }]
 }
     } catch (error) {
        console.log(error)

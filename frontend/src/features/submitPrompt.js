@@ -68,6 +68,9 @@ export async function submitPrompt({
       role: "assistant",
       content: data?.answer || "I completed the request.",
       images: data?.images || [],
+      artifacts: data?.artifacts || [],
+      deliverables: data?.deliverables || [],
+      execution: data?.execution,
     }))
 
     return { data, conversation: activeConversation }

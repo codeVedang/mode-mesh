@@ -4,8 +4,17 @@ import remarkGfm from "remark-gfm"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
 import { TbCheck, TbCopy, TbExternalLink, TbSparkles, TbUser, TbX } from "react-icons/tb"
+import ExecutionTimeline from "./ExecutionTimeline"
+import ResultDeliverables from "./ResultDeliverables"
 
-function MessageBubble({ role, content, images = [] }) {
+function MessageBubble({
+  role,
+  content,
+  images = [],
+  artifacts = [],
+  deliverables = [],
+  execution,
+}) {
   const isUser = role === "user"
   const [lightBox, setLightBox] = useState(null)
   const [copiedCode, setCopiedCode] = useState("")
@@ -112,6 +121,13 @@ function MessageBubble({ role, content, images = [] }) {
         >
           {content}
         </Markdown>
+
+        {!isUser && (
+          <>
+            <ResultDeliverables artifacts={artifacts} deliverables={deliverables} />
+            <ExecutionTimeline execution={execution} />
+          </>
+        )}
       </div>
 
       {lightBox && (

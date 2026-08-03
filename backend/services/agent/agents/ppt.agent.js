@@ -54,17 +54,20 @@ const buffer=await ppt.write({
 const filename=`ppt-${Date.now()}.pptx`
 
 await uploadToS3(filename,buffer,"application/vnd.openxmlformats-officedocument.presentationml.presentation")
-const downloadUrl=await getFromS3(filename,24*60*60)
+const expiresIn=60*60
+const downloadUrl=await getFromS3(filename,expiresIn,filename)
 
 return {
     ...state,
-    aiResponse:`# ✅ Presentation Generated
-
-**${data.title}**
-
-📥 [Download PPT](${downloadUrl})
-
-_Link expires in 10 minutes._`
+    aiResponse:"Your presentation is ready to download.",
+    deliverables:[{
+        type:"ppt",
+        name:filename,
+        label:data.title || "Generated presentation",
+        url:downloadUrl,
+        mimeType:"application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        expiresAt:new Date(Date.now()+expiresIn*1000).toISOString()
+    }]
 }
 
     } catch (error) {

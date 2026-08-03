@@ -3,6 +3,7 @@ import { useSelector } from "react-redux"
 import { TbArrowUpRight, TbBraces, TbBulb, TbChartDots } from "react-icons/tb"
 import LoadingAnimation from "./LoadingAnimation"
 import MessageBubble from "./MessageBubble"
+import ExecutionTimeline from "./ExecutionTimeline"
 
 function MessageList() {
   const { selectedConversation } = useSelector((state) => state.conversation)
@@ -51,9 +52,17 @@ function MessageList() {
               role={message?.role}
               content={message?.content}
               images={message.images || []}
+              artifacts={message.artifacts || []}
+              deliverables={message.deliverables || []}
+              execution={message.execution}
             />
           ))}
-          {isLoading && <LoadingAnimation />}
+          {isLoading && (
+            <>
+              <LoadingAnimation />
+              <ExecutionTimeline pending />
+            </>
+          )}
         </div>
       )}
       <div ref={bottomRef} />

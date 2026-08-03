@@ -25,7 +25,13 @@ export const agent=async (req,res,next) => {
                 {role:"assistant",content:result.aiResponse}
             ]),
             axios.post(`${process.env.CHAT_SERVICE}/save-message`,{
-                conversationId,role:"assistant",content:result?.aiResponse,images:result?.images,artifacts:result?.artifacts
+                conversationId,
+                role:"assistant",
+                content:result?.aiResponse,
+                images:result?.images,
+                artifacts:result?.artifacts,
+                deliverables:result?.deliverables,
+                execution:result?.execution
             },{
                 headers:{"x-internal-service-token":process.env.INTERNAL_SERVICE_TOKEN}
             })
@@ -33,7 +39,10 @@ export const agent=async (req,res,next) => {
         return res.status(200).json({
             answer:result?.aiResponse,
             images:result?.images,
-            artifacts:result?.artifacts
+            artifacts:result?.artifacts,
+            deliverables:result?.deliverables,
+            execution:result?.execution,
+            speechSummary:result?.speechSummary
         })
        
     } catch (error) {

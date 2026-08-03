@@ -44,14 +44,16 @@ export const updateConversation=async (req,res) => {
 
 export const saveMessage=async (req,res) => {
     try {
-        const {conversationId,role,content,images,artifacts}=req.body
+        const {conversationId,role,content,images,artifacts,deliverables,execution}=req.body
         const [message]=await Promise.all([
             Message.create({
                 conversationId,
                 content,
                 role,
                 images,
-                artifacts
+                artifacts,
+                deliverables,
+                execution
             }),
             Conversation.findByIdAndUpdate(conversationId,{
                 updatedAt:new Date()

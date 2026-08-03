@@ -20,7 +20,16 @@ const VoiceRoom = lazy(() => import("../components/VoiceRoom"))
 function Home({ designPreview = false }) {
   const dispatch = useDispatch()
   const { userData } = useSelector((state) => state.user)
-  const [workspaceMode, setWorkspaceMode] = useState(null)
+  const previewWorkspace = designPreview
+    ? new URLSearchParams(window.location.search).get("workspace")
+      || new URLSearchParams(window.location.search).get("design-preview")
+    : null
+  const initialPreviewWorkspace = previewWorkspace?.startsWith("voice")
+    ? "voice"
+    : previewWorkspace === "text" ? "text" : null
+  const [workspaceMode, setWorkspaceMode] = useState(
+    initialPreviewWorkspace,
+  )
   const [entryPayload, setEntryPayload] = useState({})
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [loginError, setLoginError] = useState("")
@@ -31,6 +40,8 @@ function Home({ designPreview = false }) {
   }, [])
 
   useEffect(() => {
+    if (designPreview) return undefined
+
     if (!userData?._id) {
       dispatch(setConversations([]))
       dispatch(setSelectedConversation(null))
@@ -53,7 +64,7 @@ function Home({ designPreview = false }) {
     return () => {
       cancelled = true
     }
-  }, [dispatch, userData?._id])
+  }, [designPreview, dispatch, userData?._id])
 
   const handleLogin = async (token) => {
     const { data } = await api.post("/api/auth/login", { token })
@@ -144,7 +155,14 @@ function Home({ designPreview = false }) {
     )}>
       <div className={`workspace-shell workspace-${workspaceMode}`}>
         {workspaceMode === "voice" ? (
-          <VoiceRoom initialPrompt={entryPayload.prompt} onBack={returnToGateway} />
+          <VoiceRoom
+            initialPrompt={entryPayload.prompt}
+            onBack={returnToGateway}
+            onOpenText={() => {
+              setEntryPayload({})
+              setWorkspaceMode("text")
+            }}
+          />
         ) : (
           <>
             <SideBar

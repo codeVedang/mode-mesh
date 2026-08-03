@@ -16,6 +16,8 @@ import { submitPrompt } from "../features/submitPrompt"
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition"
 import { setSelectedConversation } from "../redux/conversationSlice"
 import { setArtifacts, setMessages } from "../redux/messageSlice"
+import ExecutionTimeline from "./ExecutionTimeline"
+import ResultDeliverables from "./ResultDeliverables"
 
 const GREETING = "ModeMesh voice core online. I'm ready. What would you like me to handle?"
 const SILENCE_BEFORE_SEND_MS = 1200
@@ -43,7 +45,7 @@ const getPreferredVoice = () => {
   )) || voices.find((voice) => voice.lang?.toLowerCase().startsWith("en"))
 }
 
-function VoiceRoom({ initialPrompt = "", onBack }) {
+function VoiceRoom({ initialPrompt = "", onBack, onOpenText }) {
   const dispatch = useDispatch()
   const autoStartRef = useRef(false)
   const beginListeningRef = useRef(null)
@@ -243,7 +245,7 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
         prompt,
       })
       responseScheduled = speakRef.current?.(
-        result?.data?.answer || "I completed the request.",
+        result?.data?.speechSummary || result?.data?.answer || "I completed the request.",
         { resumeListening: true },
       ) || false
     } catch (submitError) {
@@ -574,7 +576,25 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
                 key={message._id || `${message.role}-${index}-${message.content?.slice(0, 16)}`}
               >
                 <span>{message.role === "user" ? "YOU" : "MODEMESH"}</span>
-                <p>{message.role === "assistant" ? toSpokenText(message.content) : message.content}</p>
+                {message.role === "user" ? (
+                  <p>{message.content}</p>
+                ) : (
+                  <>
+                    {!(message.deliverables?.length > 0) && <p>{toSpokenText(message.content)}</p>}
+                    {message.images?.length > 0 && (
+                      <div className="voice-result-images">
+                        {message.images.map((image) => <img src={image} alt="Generated result" key={image} />)}
+                      </div>
+                    )}
+                    <ResultDeliverables
+                      artifacts={message.artifacts || []}
+                      compact
+                      deliverables={message.deliverables || []}
+                      onOpenArtifact={onOpenText}
+                    />
+                    <ExecutionTimeline execution={message.execution} />
+                  </>
+                )}
               </article>
             ))}
 
@@ -589,6 +609,7 @@ function VoiceRoom({ initialPrompt = "", onBack }) {
               <article className="voice-turn assistant processing">
                 <span>MODEMESH</span>
                 <p>Coordinating the best agent for your request<span className="voice-thinking-dots">...</span></p>
+                <ExecutionTimeline pending />
               </article>
             )}
 

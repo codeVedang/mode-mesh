@@ -1,6 +1,7 @@
 import { StateGraph } from "@langchain/langgraph";
 import { agentState } from "./state.js";
-import { router } from "./router.js";
+import { planner } from "./planner.js";
+import { finalizeExecution, supervisor } from "./supervisor.js";
 import { chatAgent } from "../agents/chat.agent.js";
 import { searchAgent } from "../agents/search.agent.js";
 import { codingAgent } from "../agents/coding.agent.js";
@@ -12,7 +13,9 @@ import { imageAnalyzer } from "../agents/imageAnalyzer.agent.js";
 
 const workflow=new StateGraph(agentState)
 
-workflow.addNode("router",router)
+workflow.addNode("planner",planner)
+workflow.addNode("supervisor",supervisor)
+workflow.addNode("finalize",finalizeExecution)
 workflow.addNode("chat",chatAgent)
 workflow.addNode("search",searchAgent)
 workflow.addNode("coding",codingAgent)
@@ -22,8 +25,9 @@ workflow.addNode("vision",visionAgent)
 workflow.addNode("pdfRag",pdfRag)
 workflow.addNode("imageAnalyzer",imageAnalyzer)
 
-workflow.addEdge("__start__","router")
-workflow.addConditionalEdges("router",(state)=>{
+workflow.addEdge("__start__","planner")
+workflow.addEdge("planner","supervisor")
+workflow.addConditionalEdges("supervisor",(state)=>{
    switch (state.agent) {
     case "chat":
      return "chat";
@@ -57,12 +61,13 @@ workflow.addConditionalEdges("router",(state)=>{
 
 
 workflow.addEdge("search","chat")
-workflow.addEdge("chat","__end__")
-workflow.addEdge("coding","__end__")
-workflow.addEdge("pdf","__end__")
-workflow.addEdge("ppt","__end__")
-workflow.addEdge("vision","__end__")
-workflow.addEdge("pdfRag","__end__")
-workflow.addEdge("imageAnalyzer","__end__")
+workflow.addEdge("chat","finalize")
+workflow.addEdge("coding","finalize")
+workflow.addEdge("pdf","finalize")
+workflow.addEdge("ppt","finalize")
+workflow.addEdge("vision","finalize")
+workflow.addEdge("pdfRag","finalize")
+workflow.addEdge("imageAnalyzer","finalize")
+workflow.addEdge("finalize","__end__")
 
 export const graph=workflow.compile()

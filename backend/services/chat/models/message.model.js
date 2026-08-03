@@ -17,6 +17,42 @@ const artifactSchema=new mongoose.Schema({
     _id:false
 })
 
+const deliverableSchema=new mongoose.Schema({
+    type:String,
+    name:String,
+    label:String,
+    url:String,
+    mimeType:String,
+    expiresAt:Date
+},{
+    _id:false
+})
+
+const executionStepSchema=new mongoose.Schema({
+    id:String,
+    label:String,
+    agent:String,
+    status:String,
+    detail:String
+},{
+    _id:false
+})
+
+const executionSchema=new mongoose.Schema({
+    id:String,
+    status:String,
+    objective:String,
+    plan:[String],
+    selectedAgent:String,
+    startedAt:Number,
+    completedAt:Date,
+    durationMs:Number,
+    requiresApproval:Boolean,
+    steps:[executionStepSchema]
+},{
+    _id:false
+})
+
 
 const messageSchema=new mongoose.Schema({
     conversationId:{
@@ -29,7 +65,9 @@ const messageSchema=new mongoose.Schema({
     },
     content:String,
     images:[String],
-    artifacts:[artifactSchema]
+    artifacts:[artifactSchema],
+    deliverables:[deliverableSchema],
+    execution:executionSchema
 
 },{
     timestamps:true

@@ -39,7 +39,7 @@ Sign in with Google and choose one of two purpose-built experiences:
 
 ## Why this project stands out
 
-- **Real multi-agent orchestration:** LangGraph classifies each request and routes it through a stateful graph of specialized agents.
+- **Governed multi-agent orchestration:** a LangGraph Planner creates the task plan, the Supervisor validates routing and policy, a specialist Worker executes, and the Supervisor verifies the structured result.
 - **Multimodal interaction:** hands-free voice, text chat, PDF upload, image analysis, image generation, and downloadable artifacts share one workspace.
 - **Jarvis-style voice console:** a single-screen live transcript runs a continuous listen → route → answer → speak loop, supports interruption, and recognizes commands for repeat, mute, new conversation, and ending a session.
 - **Production-oriented architecture:** an API gateway fronts four independently deployable services with internal service authentication.
@@ -56,12 +56,13 @@ Sign in with Google and choose one of two purpose-built experiences:
 | --- | --- |
 | Conversational voice | Jarvis-style single-screen transcript, wake phrases, continuous listening, silence-based auto-send, spoken replies, mute, repeat, new-session commands, and interruption |
 | Intelligent routing | `Auto` mode uses an LLM router and LangGraph conditional edges to select the appropriate specialist |
+| Agent execution | Persisted Planner → Supervisor → Worker → Verification timeline with route, status, latency, and result validation |
 | General assistant | Context-aware chat with Redis-backed short-term memory and persistent MongoDB conversation history |
 | Live research | Tavily web search feeds current results into the answer-generation agent |
 | Coding workspace | Code generation, debugging, review, explanation, optimization, conversion, documentation, and Monaco-based artifact preview |
 | PDF RAG | PDF parsing, recursive chunking, Gemini embeddings, Qdrant similarity search, and source-grounded answers |
 | Image intelligence | Gemini multimodal analysis for uploaded images, including text, chart, and table interpretation |
-| Content generation | Downloadable PDF and PowerPoint generation with temporary signed links |
+| Content generation | Typed PDF and PowerPoint deliverables rendered as dedicated download controls with temporary signed links |
 | Image generation | Prompt enhancement, Pollinations image generation, S3 storage, and signed downloads |
 | Authentication | Firebase Google OAuth on the client and Firebase Admin token verification in the auth service |
 | Monetization | Razorpay order verification, subscription plans, credits, and per-agent usage costs |
@@ -69,11 +70,12 @@ Sign in with Google and choose one of two purpose-built experiences:
 
 ## Multi-agent graph
 
-ModeMesh currently compiles eight specialist nodes plus an LLM-powered router:
+ModeMesh compiles a governed Planner–Supervisor workflow around eight specialist workers:
 
 | Agent | Responsibility | Primary integration |
 | --- | --- | --- |
-| Router | Classifies requests and selects the workflow | LangGraph + Groq |
+| Planner | Converts the request into an objective, execution plan, and proposed specialist | LangGraph + Groq |
+| Supervisor | Validates routing, advances execution state, and verifies structured outputs | LangGraph policy nodes |
 | Chat | General answers and contextual follow-ups | Groq + Redis memory |
 | Search | Retrieves current web information, then hands results to Chat | Tavily + Groq |
 | Coding | Generates project artifacts or handles code review/debugging | OpenRouter + Monaco |
@@ -100,7 +102,7 @@ flowchart LR
     Auth --> Redis[("Redis / Render Key Value")]
 
     Chat --> Mongo
-    Agent --> Graph["LangGraph Router"]
+    Agent --> Graph["LangGraph Planner + Supervisor"]
     Agent --> Redis
     Agent --> Chat
     Agent --> Qdrant[("Qdrant Vector DB")]
@@ -117,9 +119,10 @@ flowchart LR
 1. Firebase signs in the user and sends an ID token to the gateway.
 2. The auth service verifies the token and creates an HTTP-only, Redis-backed session.
 3. The gateway validates the session and forwards the user ID plus an internal service token.
-4. The agent service invokes the LangGraph workflow.
-5. The router chooses a specialist from the prompt and optional uploaded file.
-6. Results and artifacts are saved through the chat service and returned to the selected voice or text interface.
+4. The agent service invokes the LangGraph workflow and the Planner creates a structured task plan.
+5. The Supervisor validates the route before dispatching the appropriate specialist Worker.
+6. The Supervisor verifies the response, artifacts, images, and typed deliverables.
+7. Results plus execution metadata are saved through the chat service and rendered in the selected voice or text interface.
 
 ## Microservices
 

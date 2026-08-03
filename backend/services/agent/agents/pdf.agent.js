@@ -50,17 +50,20 @@ ${state.prompt}
         const filename=`pdf-${Date.now()}.pdf`
         await uploadToS3(filename,pdfBuffer,"application/pdf")
 
-        const downloadUrl=await getFromS3(filename,24*60)
+        const expiresIn=60*60
+        const downloadUrl=await getFromS3(filename,expiresIn,filename)
 
         return {
           ...state,
-          aiResponse:`# PDF Generated
-
-**${data.title}**
-
-📥 [Download PDF](${downloadUrl})
-
-_Link expires in 10 minutes._`
+          aiResponse:"Your PDF is ready to download.",
+          deliverables:[{
+            type:"pdf",
+            name:filename,
+            label:data.title || "Generated PDF",
+            url:downloadUrl,
+            mimeType:"application/pdf",
+            expiresAt:new Date(Date.now()+expiresIn*1000).toISOString()
+          }]
         }
 
     } catch (error) {
