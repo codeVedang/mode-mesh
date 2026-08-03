@@ -172,6 +172,12 @@ input:focus-visible {
   transform: translateY(-2px);
 }
 
+.login-card > button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+  transform: none;
+}
+
 .login-card > button svg {
   width: 20px;
   height: 20px;
@@ -181,6 +187,11 @@ input:focus-visible {
   display: block;
   margin-top: 14px;
   color: var(--muted);
+}
+
+.login-card .login-error {
+  color: #b42318;
+  font-weight: 600;
 }
 
 /* Split mode gateway */

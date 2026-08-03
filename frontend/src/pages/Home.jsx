@@ -20,6 +20,7 @@ function Home({ designPreview = false }) {
   const [workspaceMode, setWorkspaceMode] = useState(null)
   const [entryPayload, setEntryPayload] = useState({})
   const [isSigningIn, setIsSigningIn] = useState(false)
+  const [loginError, setLoginError] = useState("")
   const [showBilling, setShowBilling] = useState(false)
 
   useEffect(() => {
@@ -27,22 +28,22 @@ function Home({ designPreview = false }) {
   }, [])
 
   const handleLogin = async (token) => {
-    try {
-      const { data } = await api.post("/api/auth/login", { token })
-      dispatch(setUserdata(data))
-    } catch (error) {
-      console.error(error)
-    }
+    const { data } = await api.post("/api/auth/login", { token })
+    dispatch(setUserdata(data))
   }
 
   const googleLogin = async () => {
     setIsSigningIn(true)
+    setLoginError("")
     try {
       const data = await signInWithPopup(auth, googleProvider)
       const token = await data.user.getIdToken()
       await handleLogin(token)
     } catch (error) {
       console.error(error)
+      setLoginError(error.response?.status === 503
+        ? "ModeMesh services are still starting. Please try signing in again in a moment."
+        : "Sign-in could not be completed. Please try again.")
     } finally {
       setIsSigningIn(false)
     }
@@ -85,6 +86,7 @@ function Home({ designPreview = false }) {
               <FcGoogle aria-hidden="true" />
               {isSigningIn ? "Starting secure workspace..." : "Continue with Google"}
             </button>
+            {loginError && <small className="login-error" role="alert">{loginError}</small>}
             {designPreview && <small>Design preview mode</small>}
           </div>
         </section>

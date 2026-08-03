@@ -17,6 +17,7 @@ import {
 } from "react-icons/tb"
 import { submitPrompt } from "../features/submitPrompt"
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition"
+import { addMessage } from "../redux/messageSlice"
 
 const agents = [
   { id: "auto", icon: TbSparkles, label: "Auto" },
@@ -70,6 +71,10 @@ function ChatInput({
       if (fileRef.current) fileRef.current.value = ""
     } catch (error) {
       console.error(error)
+      const message = error.response?.status === 503
+        ? "ModeMesh services are still starting. Your message was not sent—please try again in a moment."
+        : "I couldn't reach ModeMesh. Your message was not sent, so please try again."
+      dispatch(addMessage({ role: "assistant", content: message }))
     }
   }, [
     clearTranscript,
