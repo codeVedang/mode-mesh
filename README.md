@@ -52,6 +52,10 @@ Sign in with Google and choose one of two purpose-built experiences:
 
 ## Product capabilities
 
+### New: Missions
+
+Give ModeMesh one research brief and audience, review the plan, then receive a sourced comparison, PDF report, and five-slide deck. Missions includes saved progress, cancellation, checkpoint-based retries, fresh download links, and voice-dictated revisions that reuse research. Open **Try a Mission** on the home screen. [Workflow, costs, deployment order, and tests](docs/missions.md).
+
 | Area | Capability |
 | --- | --- |
 | Conversational voice | Jarvis-style single-screen transcript, wake phrases, continuous listening, silence-based auto-send, spoken replies, mute, repeat, new-session commands, and interruption |

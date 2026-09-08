@@ -75,15 +75,13 @@ export const logOut = async (req, res) => {
 export const updateUserPayment = async (req, res) => {
     try {
         const { plan, credits, userId } = req.body
-        const user = await User.findById(userId)
+        const user = await User.findByIdAndUpdate(userId, {
+            $set: { plan, planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
+            $inc: { credits, totalCredits: credits }
+        }, { new: true })
         if (!user) {
             return res.status(404).json({ message: "User not found" })
         }
-        user.plan = plan
-        user.credits += credits
-        user.totalCredits += credits
-        user.planExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        await user.save()
 
         const sessionId = await redis.get(`user-session-${user?._id}`)
         await redis.set(`session-${sessionId}`, JSON.stringify({
@@ -125,18 +123,12 @@ export const deductCredits = async (req, res) => {
 
         };
 
-        const user=await User.findById(userId)
-
-        if(!user){
-            return res.status(400).json({message:"user not found"})
-        }
-
        const requiredCredits=COST[agent] || 1
-        if(user.credits<requiredCredits){
+       const user = await User.findOneAndUpdate({ _id: userId, credits: { $gte: requiredCredits } },
+           { $inc: { credits: -requiredCredits } }, { new: true })
+        if(!user){
          return res.status(400).json({message:"Not enough credits."})
         }
-        user.credits-=requiredCredits
-        await user.save()
 
        const sessionId = await redis.get(`user-session-${user?._id}`)
         await redis.set(`session-${sessionId}`, JSON.stringify({

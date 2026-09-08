@@ -1,6 +1,8 @@
 import redis from "../../../shared/redis/redis.js"
 
 const Limits = {
+    mission: 5,
+    missionRun: 5,
     chat: 20,
     coding: 5,
     pdf: 5,

@@ -16,6 +16,7 @@ app.use(cors({
 }))
 app.use(morgan("dev"))
 app.use(cookieParser())
+app.use('/api/auth/mission-credits', protect)
 app.use("/api/auth",proxyWithHeader(process.env.AUTH_SERVICE))
 app.use("/api/chat",protect,proxyWithHeader(process.env.CHAT_SERVICE))
 app.use("/api/agent",protect,proxyWithHeader(process.env.AGENT_SERVICE))

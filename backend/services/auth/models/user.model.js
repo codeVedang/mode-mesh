@@ -8,6 +8,7 @@ const userSchema=new mongoose.Schema({
     name:String,
     email:String,
     avatar:String,
+    missionCharges:{type:[String],default:[],select:false},
     plan:{
         type:String,
         default:"free"

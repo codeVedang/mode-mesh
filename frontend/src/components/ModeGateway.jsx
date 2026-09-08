@@ -23,6 +23,7 @@ import logOut from "../features/logOut"
 import { setSelectedConversation } from "../redux/conversationSlice"
 import { setUserdata } from "../redux/userSlice"
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition"
+import './missions.css'
 
 const agents = [
   { label: "Auto", icon: TbSparkles },
@@ -31,7 +32,7 @@ const agents = [
   { label: "Vision", icon: TbPhoto },
 ]
 
-function ModeGateway({ onEnterText, onEnterVoice, onOpenBilling }) {
+function ModeGateway({ onEnterText, onEnterVoice, onOpenBilling, onOpenMissions }) {
   const dispatch = useDispatch()
   const fileRef = useRef(null)
   const { conversations } = useSelector((state) => state.conversation)
@@ -161,6 +162,9 @@ function ModeGateway({ onEnterText, onEnterVoice, onOpenBilling }) {
 
         <div className="text-gateway-content">
           <h2>Start with a thought.</h2>
+          <button type="button" className="gateway-mission-card" onClick={() => onOpenMissions({ prompt })}>
+            <TbSparkles aria-hidden="true" /><span><strong>Try a Mission</strong><small>One brief. Sourced research, a PDF report, and a slide deck.</small></span><TbArrowRight aria-hidden="true" />
+          </button>
 
           <div className="gateway-composer">
             <textarea

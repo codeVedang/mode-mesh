@@ -20,7 +20,7 @@ import { setMessages } from "../redux/messageSlice"
 import { setUserdata } from "../redux/userSlice"
 import BillingDrawer from "./BillingDrawer"
 
-function SideBar({ mode, onModeChange, onModeHub }) {
+function SideBar({ mode, onModeChange, onModeHub, onOpenMissions }) {
   const dispatch = useDispatch()
   const { conversations, selectedConversation } = useSelector((state) => state.conversation)
   const { userData } = useSelector((state) => state.user)
@@ -98,6 +98,9 @@ function SideBar({ mode, onModeChange, onModeHub }) {
         <button type="button" className="sidebar-new-session" onClick={newSession}>
           <TbPlus aria-hidden="true" />
           New session
+        </button>
+        <button type="button" className="mode-hub-button" onClick={() => onOpenMissions()}>
+          <TbLayersIntersect aria-hidden="true" /> Missions
         </button>
 
         <div className="sidebar-section-label">

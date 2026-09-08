@@ -16,6 +16,7 @@ const Artifact = lazy(() => import("../components/Artifact"))
 const ChatArea = lazy(() => import("../components/ChatArea"))
 const SideBar = lazy(() => import("../components/SideBar"))
 const VoiceRoom = lazy(() => import("../components/VoiceRoom"))
+const MissionRoom = lazy(() => import('../components/MissionRoom'))
 
 function Home({ designPreview = false }) {
   const dispatch = useDispatch()
@@ -28,7 +29,7 @@ function Home({ designPreview = false }) {
     ? "voice"
     : previewWorkspace === "text" ? "text" : null
   const [workspaceMode, setWorkspaceMode] = useState(
-    initialPreviewWorkspace,
+    new URLSearchParams(window.location.search).has('mission') ? 'mission' : initialPreviewWorkspace,
   )
   const [entryPayload, setEntryPayload] = useState({})
   const [isSigningIn, setIsSigningIn] = useState(false)
@@ -94,8 +95,18 @@ function Home({ designPreview = false }) {
   }
 
   const returnToGateway = () => {
+    const url = new URL(window.location.href)
+    url.searchParams.delete('mission')
+    window.history.replaceState(null, '', url)
     setEntryPayload({})
     setWorkspaceMode(null)
+  }
+
+  const openMissions = (payload = {}) => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('mission', 'new')
+    window.history.replaceState(null, '', url)
+    enterWorkspace('mission', payload)
   }
 
   if (!userData) {
@@ -137,6 +148,7 @@ function Home({ designPreview = false }) {
     return (
       <>
         <ModeGateway
+          onOpenMissions={openMissions}
           onEnterText={(payload) => enterWorkspace("text", payload)}
           onEnterVoice={(payload) => enterWorkspace("voice", payload)}
           onOpenBilling={() => setShowBilling(true)}
@@ -153,9 +165,10 @@ function Home({ designPreview = false }) {
         <span>Loading ModeMesh workspace</span>
       </main>
     )}>
-      <div className={`workspace-shell workspace-${workspaceMode}`}>
+      {workspaceMode === 'mission' ? <MissionRoom onBack={returnToGateway} initialPrompt={entryPayload.prompt} /> : <div className={`workspace-shell workspace-${workspaceMode}`}>
         {workspaceMode === "voice" ? (
           <VoiceRoom
+            onOpenMissions={openMissions}
             initialPrompt={entryPayload.prompt}
             onBack={returnToGateway}
             onOpenText={() => {
@@ -166,6 +179,7 @@ function Home({ designPreview = false }) {
         ) : (
           <>
             <SideBar
+              onOpenMissions={openMissions}
               mode={workspaceMode}
               onModeChange={(nextMode) => {
                 setEntryPayload({})
@@ -182,7 +196,7 @@ function Home({ designPreview = false }) {
             <Artifact />
           </>
         )}
-      </div>
+      </div>}
     </Suspense>
   )
 }

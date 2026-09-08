@@ -45,7 +45,7 @@ const getPreferredVoice = () => {
   )) || voices.find((voice) => voice.lang?.toLowerCase().startsWith("en"))
 }
 
-function VoiceRoom({ initialPrompt = "", onBack, onOpenText }) {
+function VoiceRoom({ initialPrompt = "", onBack, onOpenText, onOpenMissions }) {
   const dispatch = useDispatch()
   const autoStartRef = useRef(false)
   const beginListeningRef = useRef(null)
@@ -487,6 +487,9 @@ function VoiceRoom({ initialPrompt = "", onBack, onOpenText }) {
         </div>
 
         <div className="voice-header-actions">
+          <button type="button" onClick={() => { endSession(); onOpenMissions({ prompt: lastHeard || transcript }) }} title="Research, report, and slides">
+            <TbSparkles aria-hidden="true" /> Missions
+          </button>
           <button
             type="button"
             className="voice-output-toggle"

@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "test": "node --test missions/*.test.js",
     "dev": "nodemon index.js",
     "start":"node index.js"
   },

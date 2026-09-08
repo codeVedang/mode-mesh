@@ -11,7 +11,7 @@ const COLORS = {
 };
 
 
-export const generatePpt = async (data) => {
+export const generatePpt = async (data, { includeClosing = true } = {}) => {
     const ppt = new pptxgen()
     ppt.layout = "LAYOUT_WIDE"
     ppt.author = "ModeMesh AI"
@@ -38,7 +38,7 @@ export const generatePpt = async (data) => {
         )
     });
 
-    addThankYou(ppt)
+    if (includeClosing) addThankYou(ppt)
 
     return ppt
 }
