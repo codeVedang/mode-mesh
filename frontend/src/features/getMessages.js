@@ -1,12 +1,12 @@
 
 import api from '../../utils/axios'
 
-async function getMessages(id) {
+async function getMessages(id, { signal } = {}) {
 try {
-    const {data}=await api.get(`/api/chat/get-messages/${id}`)
-    console.log(data)
+    const {data}=await api.get(`/api/chat/get-messages/${id}`, { signal })
     return data
 } catch (error) {
+    if (signal?.aborted) return []
     console.log(error)
     return []
 }

@@ -13,9 +13,12 @@ function ChatArea({ initialAgent, initialFile, initialPrompt, onBack }) {
   const selectedConversationTitle = selectedConversation?.title
 
   useEffect(() => {
+    const controller = new AbortController()
     const getMesg = async () => {
       if (!selectedConversationId || selectedConversationTitle === "New Chat") return
-      const data = await getMessages(selectedConversationId)
+      const data = await getMessages(selectedConversationId, { signal: controller.signal })
+      // A previous conversation must not overwrite the current chat after navigation.
+      if (controller.signal.aborted) return
       dispatch(setMessages(data || []))
       const latestArtifactMessage = [...(data || [])]
         .reverse()
@@ -24,6 +27,7 @@ function ChatArea({ initialAgent, initialFile, initialPrompt, onBack }) {
     }
 
     getMesg()
+    return () => controller.abort()
   }, [dispatch, selectedConversationId, selectedConversationTitle])
 
   return (
